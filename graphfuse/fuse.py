@@ -2,6 +2,9 @@
 Fuse nodes
 """
 
+from collections import defaultdict
+from graph import Graph, topo_sort
+
 def build_users(nodes):
     """
     Graph stores node.inputs, but for fusion we need the reverse direction
@@ -28,8 +31,17 @@ def find_sink(node, users):
     """
 
     if node.is_pointwise and len(users[node]) == 1 and users[node][0].is_pointwise:
-        return find_sink(users[node], users) # recurse onto the next
+        return find_sink(users[node][0], users) # recurse onto the next
     
     # otherwise, the sink is the node itself
     return node
 
+def build_groups(nodes):
+    users = build_users(nodes)
+    groups = defaultdict(list)
+
+    for node in nodes:
+        sink = find_sink(node, users)
+        groups[sink].append(node)
+    
+    return groups
