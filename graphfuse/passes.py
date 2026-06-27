@@ -8,7 +8,7 @@ We return graphs for each optimization so they are composable:
 """
 
 
-from graph import Graph, topo_sort
+from graph import Node, Graph, topo_sort
 from interpreter import run
 
 def dce(graph):

@@ -35,4 +35,20 @@ Each optimization pass generates a new `Graph` object instead of mutating the or
 
 **Constant Folding** - We constant fold only over nodes whose inputs are `const`. Since `const` nodes must be leaves (a `const` node is generated with no inputs), this is a safe operation. A `node_map` is maintained between the original and constant folded graph. All other nodes are cloned, with their inputs changed based on the new folded graph defined by `node_map`.
 
-**Common Subexpression Elimination** - 
+**Common Subexpression Elimination** - We maintain a hashmap to track seen nodes and their signature, where signature(node) = (operation, remapped inputs, attributes, node name). Then for each node in the walk, if it has been seen, we replace it with the already seen node. For example, 
+
+```
+mul_1(a, b)
+mul_2(a, b)
+add(mul_1, mul_2)
+```
+
+is mapped to:
+
+```
+mul_1(a, b)
+add(mul_1, mul_1)
+```
+
+
+
