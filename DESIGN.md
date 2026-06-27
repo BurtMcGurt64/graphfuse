@@ -28,9 +28,11 @@ The graph we created is the compiler's intermediate representation (IR). We buil
 To execute the graph we need to run nodes in an order where every node comes after the nodes it depends on. We do this by DFS postorder starting from the output node. Also, because a node can feed into multiple operations downstream (we are working on a DAG, not a tree), the traversal can reach it more than once. We solve this by maintaining a `visited` set to make sure that each node is emitted exactly once.
 
 
-### Optimization Passes
-**Dead Code Elimination** - 
+### Optimization Passes (`passes.py`)
+Each optimization pass generates a new `Graph` object instead of mutating the original.
 
-**Constant Folding** - 
+**Dead Code Elimination** - Since the tensor graph already encodes information about node dependency, we run `topo_sort()` over all output nodes in the graph, and construct a new graph from those nodes. This eliminates any nodes that are not a dependency of an output node.
+
+**Constant Folding** - We constant fold only over nodes whose inputs are `const`. Since `const` nodes must be leaves (a `const` node is generated with no inputs), this is a safe operation. A `node_map` is maintained between the original and constant folded graph. All other nodes are cloned, with their inputs changed based on the new folded graph defined by `node_map`.
 
 **Common Subexpression Elimination** - 

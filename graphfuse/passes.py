@@ -4,6 +4,7 @@ Optimization passes over the tensor graph
 
 We return graphs for each optimization so they are composable:
     - dce(cfold(cse(graph)))
+
 """
 
 
@@ -40,7 +41,7 @@ def cfold(graph):
     then we compute while constructing the graph. 
     """
     visited = set()
-
+    folded = Graph()
     node_map = {} # old node -> new node to be constructed in folded graph
 
     for out in graph.outputs:
@@ -50,24 +51,52 @@ def cfold(graph):
                 visited.add(node)
 
                 if not node.is_const and not node.is_input and all(node_map[inp].is_const for inp in node.inputs):
-
-                    node_map[node] = graph.const(value)
-
-
-
-    for node in graph.nodes:
-        if not node.is_const and not node.is_input and all(inp.is_const for inp in node.inputs): # we need ALL inputs to be constants
-            value = run({}, node)
-
-            const_node = graph.const(value)
-            
-            # replace all places where `node` appears as an input to other nodes
-            for _node in graph.nodes:
-                if node in _node.inputs:
-                    _node.inputs = [const_node if inp is node else inp for inp in _node.inputs]
-            
-            graph.outputs = [const_node if out is node else out for out in graph.outputs]
-                    
-    return graph
+                    # this is currently O(n^2) - we don't need to run every iteration
+                    value = run({}, node)
+                    node_map[node] = folded.const(value)
+        
+                else:
+                    clone = Node(node.op, inputs=[node_map[inp] for inp in node.inputs], attrs=node.attrs, name=node.name)
+                    folded._add(clone)
+                    node_map[node] = clone
 
 
+    folded.outputs = [node_map[out] for out in graph.outputs]
+    return folded
+
+
+def cse(graph):
+    """
+    Common subexpression elimination over tensor graph. If the current node has already been seen, 
+    we substitute the expression it corresponds to. 
+    """
+
+    def _signature(node, node_map):
+        # allows us to compare nodes
+        # sig(node) = (operation, inputs, attributes, name)
+        inputs = tuple(node_map[i] for i in node.inputs)
+        return (node.op, inputs, tuple(sorted(node.attrs.items())), node.name)
+
+    seen = {} # signature -> node
+    visited = set()
+    cse_graph = Graph()
+    node_map = {}
+
+    for out in graph.outputs:
+        for node in topo_sort(out):
+            if node not in visited:
+                visited.add(node)
+                sig = _signature(node, node_map)
+
+                if sig in seen:
+                    node_map[node] = seen[sig]
+                
+                else:
+                    clone = Node(node.op, inputs=[node_map[inp] for inp in node.inputs], attrs=node.attrs, name=node.name)
+                    seen[sig] = clone
+                    node_map[node] = clone
+                    cse_graph._add(clone)
+    
+    cse_graph.outputs = [node_map[out] for out in graph.outputs]
+
+    return cse_graph
