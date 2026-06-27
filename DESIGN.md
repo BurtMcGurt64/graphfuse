@@ -6,7 +6,7 @@ This is a small compiler for tensor graphs. Given an expression in PyTorch, we d
 
 The high-level workflow is:
 
-PyTorch Expression (ex: relu((a * b) + c)) --> Directed Acyclic Graph --> Optimization (Dead Code Elimination, Fusing Operations) --> Triton Kernels
+PyTorch Expression (ex: `relu((a * b) + c)`) --> Directed Acyclic Graph --> Optimization (Dead Code Elimination, Fusing Operations) --> Triton Kernels
 
 ## Design Specification
 ### Data Representation
@@ -19,6 +19,8 @@ input(a) ─┐
 input(b) ─┘         ├─→ add ─→ relu
 input(c) ───────────┘
 
+We execute the instruction by traversing the corresponding graph.
+
 ### IR & Execution Separation
 The graph we created is the compiler's intermediate representation (IR). We build the graph and optimize over it *before* execution. This separation allows us to optimize the graph, as the kernels that will eventually execute this graph don't exist yet while the graph is being built and rewritten. Another advantage of this separation is that rewriting the graph does not require any GPU compute/runtime, as the graph is simply represented by a Python class.
 
@@ -26,4 +28,9 @@ The graph we created is the compiler's intermediate representation (IR). We buil
 To execute the graph we need to run nodes in an order where every node comes after the nodes it depends on. We do this by DFS postorder starting from the output node. Also, because a node can feed into multiple operations downstream (we are working on a DAG, not a tree), the traversal can reach it more than once. We solve this by maintaining a `visited` set to make sure that each node is emitted exactly once.
 
 
-## Optimization Passes
+### Optimization Passes
+**Dead Code Elimination** - 
+
+**Constant Folding** - 
+
+**Common Subexpression Elimination** - 

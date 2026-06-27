@@ -39,6 +39,21 @@ def cfold(graph):
     Constant folding over tensor graph. If an operation only is made up of constant inputs,
     then we compute while constructing the graph. 
     """
+    visited = set()
+
+    node_map = {} # old node -> new node to be constructed in folded graph
+
+    for out in graph.outputs:
+        # run topo_sort on each output node to get its dependencies
+        for node in topo_sort(out):
+            if node not in visited:
+                visited.add(node)
+
+                if not node.is_const and not node.is_input and all(node_map[inp].is_const for inp in node.inputs):
+
+                    node_map[node] = graph.const(value)
+
+
 
     for node in graph.nodes:
         if not node.is_const and not node.is_input and all(inp.is_const for inp in node.inputs): # we need ALL inputs to be constants
