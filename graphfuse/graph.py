@@ -26,6 +26,11 @@ class Node:
     @property
     def is_const(self):
         return self.op == "const"
+    
+    @property
+    def is_pointwise(self):
+        pointwise = {"add", "mul", "relu"}
+        return self.op in pointwise
 
     def __repr__(self):
         # make nicer later
