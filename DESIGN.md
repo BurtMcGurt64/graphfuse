@@ -50,13 +50,24 @@ mul_1(a, b)
 add(mul_1, mul_1)
 ```
 
-### Project Layout
-Everything lives under the `graphfuse/` package. The modules import each other with package-relative imports (`from .graph import ...`) instead of flat ones, so the project runs the same from anywhere, not just from inside the folder. `__init__.py` only re-exports the pure-python IR (`Node`, `Graph`, `topo_sort`) on purpose - we don't want a plain `import graphfuse` to drag in torch/triton until you actually reach for the interpreter or codegen.
+### Fusion (`fuse.py`)
+The reason fusion matters is memory bandwidth. Running `relu((a*b)+c)` as three separate kernels means writing `a*b` back to GPU memory, reading it in again for the add, writing that out, reading it in again for the relu. Every intermediate makes a round trip through global memory. If we fuse the whole chain into one kernel, the intermediates stay in registers and we only touch memory once at the start (loading a, b, c) and once at the end (storing the result).
 
-To see the current pipeline end to end (build a graph, run it, watch the passes rewrite it):
+So we want to group pointwise ops that chain into each other. We already have `find_sink` / `build_groups` to figure out the grouping - a group is every node that flows into the same sink. `fuse()` turns each group into a single `fused` node.
 
-```
-uv run python -m graphfuse.demo
-```
+A node is only pulled into its user's group if it's pointwise, has exactly one user, and that user is pointwise (this is the `find_sink` rule). The nice consequence is that a non-sink member of a group is never read from outside the group - if it had another reader it would have had a second user and become its own sink. So the only value a group exposes to the rest of the graph is its sink, which is exactly what the `fused` node produces.
 
+Non-pointwise nodes (inputs, consts, matmul, sum) can't be fused, so they just get cloned through unchanged. That means a matmul or reduction in the middle naturally splits the pointwise chains around it into separate groups.
+
+A `fused` node keeps its insides in `attrs` so nothing downstream loses information:
+- `attrs['nodes']` - the internal pointwise ops, in topo order
+- `attrs['output']` - which internal node is the group's result (the sink)
+- `attrs['inputs']` - the external operands, lined up with `node.inputs`
+
+The interpreter knows how to run a `fused` node: it seeds a local env with the external operands and walks the internal ops. This lets us check that fusion didn't change the answer by running the fused graph against the original.
+
+### Triton Codegen (`codegen.py`)
+This is where the graph finally becomes real kernels. For now we only lower `fused` nodes, and those are pointwise by construction, so the codegen is simple: each external operand is a pointer we `tl.load` once, each internal op is one line of arithmetic over values we've already named, and the sink gets `tl.store`d back out. Everything in between lives in registers, which is the whole point of fusing.
+
+`emit_kernel` is pure string generation - it just walks the fused node's internal ops in topo order and prints a triton expression for each one. `compile_fused` is what actually jits and launches it, so it imports triton lazily (triton only exists on the gpu server, not on the mac we edit from).
 

@@ -10,6 +10,8 @@ import torch
 from .graph import Graph
 from .interpreter import run
 from .passes import dce, cfold, cse
+from .fuse import fuse
+from .codegen import emit_kernel
 
 
 def demo_interpreter():
@@ -49,10 +51,40 @@ def demo_cse():
     print(f"cse: mul(a,b) twice -> nodes {before} down to {len(deduped.nodes)}")
 
 
+def demo_fusion():
+    # relu((a*b)+c) is one pointwise chain, so fuse() should collapse mul/add/relu
+    # into a single fused node with a, b, c as its external inputs
+    g = Graph()
+    a, b, c = g.input("a"), g.input("b"), g.input("c")
+    out = g.relu(g.add(g.mul(a, b), c))
+    g.outputs = [out]
+
+    fg = fuse(g)
+
+    inputs = {
+        "a": torch.tensor([1.0, -2.0, 3.0]),
+        "b": torch.tensor([4.0, 5.0, -6.0]),
+        "c": torch.tensor([0.0, 1.0, 2.0]),
+    }
+    # the whole point: fusing must not change the answer. check the fused graph against
+    # the original by running both through the interpreter
+    original = run(inputs, g.outputs[0])
+    fused = run(inputs, fg.outputs[0])
+    print("fusion: nodes", [n.op for n in g.nodes], "->", [n.op for n in fg.nodes])
+    print("fusion: original == fused ?", bool(torch.allclose(original, fused)), "|", fused)
+
+    # and here's the triton kernel we'd ship to the gpu for that fused node. this is
+    # pure string generation so it's safe to look at on the mac (running it needs cuda)
+    src, _ = emit_kernel(fg.outputs[0])
+    print("\ngenerated triton kernel:\n")
+    print(src)
+
+
 def main():
     demo_interpreter()
     demo_cfold()
     demo_cse()
+    demo_fusion()
 
 
 if __name__ == "__main__":
