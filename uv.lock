@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -486,7 +486,7 @@ dependencies = [
     { name = "datasets" },
     { name = "torch" },
     { name = "transformers" },
-    { name = "triton" },
+    { name = "triton", marker = "sys_platform == 'linux'" },
 ]
 
 [package.metadata]
@@ -494,7 +494,7 @@ requires-dist = [
     { name = "datasets", specifier = ">=5.0.0" },
     { name = "torch", specifier = ">=2.12.1" },
     { name = "transformers", specifier = ">=5.12.1" },
-    { name = "triton", specifier = ">=3.7.1" },
+    { name = "triton", marker = "sys_platform == 'linux'", specifier = ">=3.7.1" },
 ]
 
 [[package]]

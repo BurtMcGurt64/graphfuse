@@ -50,5 +50,13 @@ mul_1(a, b)
 add(mul_1, mul_1)
 ```
 
+### Project Layout
+Everything lives under the `graphfuse/` package. The modules import each other with package-relative imports (`from .graph import ...`) instead of flat ones, so the project runs the same from anywhere, not just from inside the folder. `__init__.py` only re-exports the pure-python IR (`Node`, `Graph`, `topo_sort`) on purpose - we don't want a plain `import graphfuse` to drag in torch/triton until you actually reach for the interpreter or codegen.
+
+To see the current pipeline end to end (build a graph, run it, watch the passes rewrite it):
+
+```
+uv run python -m graphfuse.demo
+```
 
 

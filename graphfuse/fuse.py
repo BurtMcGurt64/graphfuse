@@ -3,7 +3,7 @@ Fuse nodes
 """
 
 from collections import defaultdict
-from graph import Graph, topo_sort
+from .graph import Graph, topo_sort
 
 def build_users(nodes):
     """

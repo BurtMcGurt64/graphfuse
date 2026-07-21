@@ -8,5 +8,7 @@ dependencies = [
     "datasets>=5.0.0",
     "torch>=2.12.1",
     "transformers>=5.12.1",
-    "triton>=3.7.1",
+    # triton only ships linux wheels (needs the gpu), so we only install it there.
+    # the mac clone is just for editing + running the interpreter/passes locally.
+    "triton>=3.7.1 ; sys_platform == 'linux'",
 ]

@@ -1,6 +1,6 @@
-from graph import topo_sort, Node, Graph
-from interpreter import run
-from passes import dce, cfold
+from .graph import topo_sort, Node, Graph
+from .interpreter import run
+from .passes import dce, cfold
 
 
 import torch

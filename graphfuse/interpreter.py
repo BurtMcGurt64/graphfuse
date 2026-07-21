@@ -4,7 +4,7 @@ corresponding torch operation
 """
 
 import torch
-from graph import topo_sort
+from .graph import topo_sort
 
 def run(inputs, output):
     """
