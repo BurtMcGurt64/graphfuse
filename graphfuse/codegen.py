@@ -6,6 +6,12 @@ construction (add / mul / relu over same-shape tensors). Anything else still run
 through torch
 """
 
+import hashlib
+import importlib.util
+import os
+import sys
+import tempfile
+
 import torch
 
 
@@ -69,6 +75,33 @@ def emit_kernel(fnode, name="fused_kernel"):
     return src, name
 
 
+def _load_kernel(src, name):
+    """
+    Import the generated kernel from a real .py file and hand back the function.
+
+    We can't just exec() the source: triton's @jit reads the kernel's source via
+    inspect.getsourcelines() (for compilation + caching), and a function built from an
+    exec'd string has no file on disk, so that blows up with "should be defined in a
+    Python file". So we write the source out and import it like a normal module.
+
+    The filename is a hash of the source, so identical kernels land in the same file and
+    triton's source-keyed cache stays happy.
+    """
+    digest = hashlib.sha1(src.encode()).hexdigest()[:12]
+    mod_name = f"graphfuse_gen_{digest}"
+    path = os.path.join(tempfile.gettempdir(), mod_name + ".py")
+
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            f.write(src)
+
+    spec = importlib.util.spec_from_file_location(mod_name, path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[mod_name] = mod  # so inspect can find it back
+    spec.loader.exec_module(mod)
+    return getattr(mod, name)
+
+
 def compile_fused(fnode, block_size=1024):
     """
     Turn a fused node into a python callable that runs its triton kernel.
@@ -78,10 +111,7 @@ def compile_fused(fnode, block_size=1024):
     the server.
     """
     src, name = emit_kernel(fnode)
-
-    ns = {}
-    exec(src, ns)  # defines the @triton.jit kernel
-    kernel = ns[name]
+    kernel = _load_kernel(src, name)
 
     import triton
 

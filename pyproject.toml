@@ -3,12 +3,22 @@ name = "graphfuse"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "datasets>=5.0.0",
-    "torch>=2.12.1",
+    # 2.11.0 is the newest torch with a cu128 wheel, which is what the server's
+    # 12.8 driver can actually run (see the cu128 index note below).
+    "torch>=2.11.0",
     "transformers>=5.12.1",
     # triton only ships linux wheels (needs the gpu), so we only install it there.
-    # the mac clone is just for editing + running the interpreter/passes locally.
-    "triton>=3.7.1 ; sys_platform == 'linux'",
+    # no version pin - let torch pull whatever triton it's built against.
+    "triton ; sys_platform == 'linux'",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128", marker = "sys_platform == 'linux'" }]
