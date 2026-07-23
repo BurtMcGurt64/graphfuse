@@ -32,7 +32,7 @@ fused:    read a, b, c once, write once  4n
                         predicted: 14/4 = 3.5x less traffic
 ```
 
-Since the chain is memory-bound, that traffic ratio is roughly the speedup ceiling (there is no Amdahl's law or slack in other parts of the system). My benchmark below verifies this theoretical speedup.
+Since the chain is memory-bound, essentially all of the runtime is memory traffic, so that ratio is close to the achievable speedup — there's no substantial slack left in the workload. My benchmark below tests whether the implementation reaches it.
 
 ## How it works
 
@@ -64,16 +64,16 @@ This is all wired into a test suite, so `uv run pytest` runs it. The pass and co
 
 ## Results
 
-Measured on **[RTX Pro 6000 Blackwell, 96GB]**, fp32, against eager PyTorch.
+Measured on an RTX Pro 6000 Blackwell (96GB), fp32, against eager PyTorch.
 
-Each configuration: **[N]** warmup iterations, median of **[N]** timed runs with `torch.cuda.synchronize()` around each.
+Timing uses Triton's `do_bench`: 25 ms of warmup, then the average over ~100 ms of timed runs, measured with CUDA events and an L2 cache flush between runs (so a warm cache doesn't hide the memory traffic we're trying to measure).
 
 ![benchmark](assets/benchmark.png)
 
 | expression | ops fused | predicted traffic saving | measured speedup | at size |
 |---|---|---|---|---|
-| `relu((a*b)+c)` | 3 → 1 kernel | 2.0× | **1.9×** | **[n elements]** |
-| `relu((a*b+c)*a + b)` | 5 → 1 kernel | 3.5× | **3.4×** | **[n elements]** |
+| `relu((a*b)+c)` | 3 → 1 kernel | 2.0× | **1.9×** | 67M (2²⁶) |
+| `relu((a*b+c)*a + b)` | 5 → 1 kernel | 3.5× | **3.4×** | 67M (2²⁶) |
 
 Measured speedup tracks the memory model closely (dashed lines in the chart), which is the result worth caring about: the fused kernels are reaching the bandwidth ceiling rather than leaving performance on the table. The longer the fused chain, the larger the win, because the fused version reads its inputs once and writes once regardless of how many operations sit in between.
 
