@@ -36,12 +36,7 @@ Since the chain is memory-bound, essentially all of the runtime is memory traffi
 
 ## How it works
 
-```
-  expression            graph (IR)              optimized graph          GPU kernel
-  relu((a*b)+c)   ─►   input(a) ┐                                   ─►   one fused
-                       input(b) ┼─ mul ┐             one fused             Triton
-                       input(c) ────── add ─ relu    node                  kernel
-```
+![pipeline](pipeline.svg)
 
 The graph is a plain Python data structure, so all rewriting happens on the CPU before any GPU code exists. That separation is the whole point: reasoning about the program is cheap until you commit to kernels.
 

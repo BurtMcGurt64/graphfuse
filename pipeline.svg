@@ -1,0 +1,74 @@
+<svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg" font-family="'SF Mono', 'Consolas', 'Menlo', monospace">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="300" fill="#ffffff"/>
+
+  <style>
+    .stage-label { font-size: 13px; font-weight: 600; fill: #57606a; }
+    .node-box { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.2; }
+    .node-text { font-size: 13px; fill: #24292f; }
+    .op-text { font-size: 13px; fill: #24292f; font-weight: 600; }
+    .expr-text { font-size: 15px; fill: #24292f; font-weight: 600; }
+    .edge { stroke: #57606a; stroke-width: 1.3; fill: none; marker-end: url(#arrow); }
+    .stage-edge { stroke: #57606a; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+    .kernel-box { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.2; }
+    .opt-box { fill: #dafbe1; stroke: #4ac26b; stroke-width: 1.2; }
+  </style>
+
+  <!-- Stage 1: expression -->
+  <text x="70" y="30" class="stage-label" text-anchor="middle">expression</text>
+  <text x="70" y="150" class="expr-text" text-anchor="middle">relu((a*b)+c)</text>
+
+  <!-- arrow to stage 2 -->
+  <path d="M140,150 L195,150" class="stage-edge"/>
+
+  <!-- Stage 2: graph IR -->
+  <text x="310" y="30" class="stage-label" text-anchor="middle">graph (IR)</text>
+
+  <rect x="200" y="70" width="72" height="28" rx="5" class="node-box"/>
+  <text x="236" y="89" class="node-text" text-anchor="middle">input(a)</text>
+
+  <rect x="200" y="150" width="72" height="28" rx="5" class="node-box"/>
+  <text x="236" y="169" class="node-text" text-anchor="middle">input(b)</text>
+
+  <rect x="200" y="230" width="72" height="28" rx="5" class="node-box"/>
+  <text x="236" y="249" class="node-text" text-anchor="middle">input(c)</text>
+
+  <rect x="320" y="110" width="56" height="28" rx="5" class="node-box"/>
+  <text x="348" y="129" class="op-text" text-anchor="middle">mul</text>
+
+  <rect x="420" y="150" width="56" height="28" rx="5" class="node-box"/>
+  <text x="448" y="169" class="op-text" text-anchor="middle">add</text>
+
+  <rect x="520" y="150" width="60" height="28" rx="5" class="node-box"/>
+  <text x="550" y="169" class="op-text" text-anchor="middle">relu</text>
+
+  <path d="M272,84 L275,84 Q320,84 320,110 L320,120" class="edge"/>
+  <path d="M272,164 L300,164 Q320,164 320,138" class="edge"/>
+  <path d="M376,124 Q420,124 420,150 L420,158" class="edge"/>
+  <path d="M272,244 L400,244 Q420,244 420,178" class="edge"/>
+  <path d="M476,164 L514,164" class="edge"/>
+
+  <!-- arrow to stage 3 -->
+  <path d="M600,164 L650,164" class="stage-edge"/>
+
+  <!-- Stage 3: optimized graph -->
+  <text x="705" y="30" class="stage-label" text-anchor="middle">optimized graph</text>
+  <rect x="655" y="140" width="100" height="48" rx="6" class="opt-box"/>
+  <text x="705" y="160" class="node-text" text-anchor="middle" font-weight="600">one fused</text>
+  <text x="705" y="177" class="node-text" text-anchor="middle" font-weight="600">node</text>
+
+  <!-- arrow to stage 4 -->
+  <path d="M760,164 L810,164" class="stage-edge"/>
+
+  <!-- Stage 4: GPU kernel -->
+  <text x="895" y="30" class="stage-label" text-anchor="middle">GPU kernel</text>
+  <rect x="815" y="140" width="120" height="48" rx="6" class="kernel-box"/>
+  <text x="875" y="160" class="node-text" text-anchor="middle" font-weight="600">fused Triton</text>
+  <text x="875" y="177" class="node-text" text-anchor="middle" font-weight="600">kernel</text>
+
+</svg>
