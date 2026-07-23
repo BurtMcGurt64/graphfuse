@@ -19,15 +19,16 @@ short = [1.69, 1.54, 1.22, 1.41, 1.94]   # relu((a*b)+c)       - memory model sa
 long_ = [2.34, 2.09, 1.69, 2.38, 3.38]   # relu((a*b+c)*a+b)   - memory model says 3.5x
 
 fig, ax = plt.subplots(figsize=(8, 5))
-ax.plot(N, short, "o-", label="relu((a*b)+c)  ·  3 ops fused")
-ax.plot(N, long_, "s-", label="relu((a*b+c)*a+b)  ·  5 ops fused")
+ax.plot(N, short, "o-", color="C0", label="relu((a*b)+c)  ·  3 ops fused")
+ax.plot(N, long_, "s-", color="C1", label="relu((a*b+c)*a+b)  ·  5 ops fused")
 
-# the analytical memory-traffic ceilings each curve should approach as it becomes
-# bandwidth-bound
-ax.axhline(2.0, ls="--", color="gray", lw=1)
-ax.axhline(3.5, ls="--", color="gray", lw=1)
-ax.text(N[0], 2.06, "memory model ceiling · 2.0x", fontsize=8, color="gray")
-ax.text(N[0], 3.56, "memory model ceiling · 3.5x", fontsize=8, color="gray")
+# each curve has its OWN memory-traffic ceiling (its eager/fused byte ratio) - the most
+# speedup possible from moving less memory. we colour each line to match its curve so
+# it's clear the 2.0x bound belongs to the 3-op expr and 3.5x to the 5-op expr.
+ax.axhline(2.0, ls="--", color="C0", lw=1)
+ax.axhline(3.5, ls="--", color="C1", lw=1)
+ax.text(N[0], 2.06, "3-op ceiling · 2.0x (8N -> 4N)", fontsize=8, color="C0")
+ax.text(N[0], 3.56, "5-op ceiling · 3.5x (14N -> 4N)", fontsize=8, color="C1")
 
 ax.set_xscale("log")
 ax.set_xlabel("tensor size (elements)")
