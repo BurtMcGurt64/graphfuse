@@ -15,6 +15,14 @@ dependencies = [
     "triton ; sys_platform == 'linux'",
 ]
 
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+# put the repo root on sys.path so `import graphfuse` works, and only collect tests/
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
